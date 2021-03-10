@@ -109,13 +109,13 @@ HectorMappingRos::HectorMappingRos()
 
   if (p_pub_drawings)
   {
-    ROS_INFO("HectorSM publishing debug drawings");
+    ROS_INFO("[HectorSM]: publishing debug drawings");
     hectorDrawings = new HectorDrawings();
   }
 
   if(p_pub_debug_output_)
   {
-    ROS_INFO("HectorSM publishing debug info");
+    ROS_INFO("[HectorSM]: publishing debug info");
     debugInfoProvider = new HectorDebugInfoProvider();
   }
 
@@ -159,6 +159,8 @@ HectorMappingRos::HectorMappingRos()
 
     // Initialize services to reset map, and toggle scan pause
     resetMapService_ = node_.advertiseService("reset_map", &HectorMappingRos::resetMapCallback, this);
+    resetMapAndPoseService_ = node_.advertiseService("reset_map_and_pose", &HectorMappingRos::resetMapAndPoseCallback, this);
+    resetPoseService_ = node_.advertiseService("reset_pose", &HectorMappingRos::resetPoseCallback, this);
     toggleScanProcessingService_ = node_.advertiseService("pause_mapping", &HectorMappingRos::pauseMapCallback, this);
 
     setServiceGetMapData(tmp.map_, slamProcessor->getGridMap(i));
@@ -168,20 +170,20 @@ HectorMappingRos::HectorMappingRos()
     }
   }
 
-  ROS_INFO("HectorSM p_base_frame_: %s", p_base_frame_.c_str());
-  ROS_INFO("HectorSM p_map_frame_: %s", p_map_frame_.c_str());
-  ROS_INFO("HectorSM p_odom_frame_: %s", p_odom_frame_.c_str());
-  ROS_INFO("HectorSM p_scan_topic_: %s", p_scan_topic_.c_str());
-  ROS_INFO("HectorSM p_use_tf_scan_transformation_: %s", p_use_tf_scan_transformation_ ? ("true") : ("false"));
-  ROS_INFO("HectorSM p_pub_map_odom_transform_: %s", p_pub_map_odom_transform_ ? ("true") : ("false"));
-  ROS_INFO("HectorSM p_scan_subscriber_queue_size_: %d", p_scan_subscriber_queue_size_);
-  ROS_INFO("HectorSM p_map_pub_period_: %f", p_map_pub_period_);
-  ROS_INFO("HectorSM p_update_factor_free_: %f", p_update_factor_free_);
-  ROS_INFO("HectorSM p_update_factor_occupied_: %f", p_update_factor_occupied_);
-  ROS_INFO("HectorSM p_map_update_distance_threshold_: %f ", p_map_update_distance_threshold_);
-  ROS_INFO("HectorSM p_map_update_angle_threshold_: %f", p_map_update_angle_threshold_);
-  ROS_INFO("HectorSM p_laser_z_min_value_: %f", p_laser_z_min_value_);
-  ROS_INFO("HectorSM p_laser_z_max_value_: %f", p_laser_z_max_value_);
+  ROS_INFO("[HectorSM]: p_base_frame_: %s", p_base_frame_.c_str());
+  ROS_INFO("[HectorSM]: p_map_frame_: %s", p_map_frame_.c_str());
+  ROS_INFO("[HectorSM]: p_odom_frame_: %s", p_odom_frame_.c_str());
+  ROS_INFO("[HectorSM]: p_scan_topic_: %s", p_scan_topic_.c_str());
+  ROS_INFO("[HectorSM]: p_use_tf_scan_transformation_: %s", p_use_tf_scan_transformation_ ? ("true") : ("false"));
+  ROS_INFO("[HectorSM]: p_pub_map_odom_transform_: %s", p_pub_map_odom_transform_ ? ("true") : ("false"));
+  ROS_INFO("[HectorSM]: p_scan_subscriber_queue_size_: %d", p_scan_subscriber_queue_size_);
+  ROS_INFO("[HectorSM]: p_map_pub_period_: %f", p_map_pub_period_);
+  ROS_INFO("[HectorSM]: p_update_factor_free_: %f", p_update_factor_free_);
+  ROS_INFO("[HectorSM]: p_update_factor_occupied_: %f", p_update_factor_occupied_);
+  ROS_INFO("[HectorSM]: p_map_update_distance_threshold_: %f ", p_map_update_distance_threshold_);
+  ROS_INFO("[HectorSM]: p_map_update_angle_threshold_: %f", p_map_update_angle_threshold_);
+  ROS_INFO("[HectorSM]: p_laser_z_min_value_: %f", p_laser_z_min_value_);
+  ROS_INFO("[HectorSM]: p_laser_z_max_value_: %f", p_laser_z_max_value_);
 
   scanSubscriber_ = node_.subscribe(p_scan_topic_, p_scan_subscriber_queue_size_, &HectorMappingRos::scanCallback, this);
   sysMsgSubscriber_ = node_.subscribe(p_sys_msg_topic_, 2, &HectorMappingRos::sysMsgCallback, this);
@@ -290,7 +292,7 @@ void HectorMappingRos::scanCallback(const sensor_msgs::LaserScan& scan)
           }
           catch(tf::TransformException e)
           {
-            ROS_ERROR("Transform from %s to %s failed\n", p_map_frame_.c_str(), p_base_frame_.c_str());
+            ROS_ERROR("[HectorSM]: Transform from %s to %s failed\n", p_map_frame_.c_str(), p_base_frame_.c_str());
             startEstimate = slamProcessor->getLastScanMatchPose();
           }
 
@@ -307,7 +309,7 @@ void HectorMappingRos::scanCallback(const sensor_msgs::LaserScan& scan)
       }
 
     }else{
-      ROS_INFO("lookupTransform %s to %s timed out. Could not transform laser scan into base_frame.", p_base_frame_.c_str(), scan.header.frame_id.c_str());
+      ROS_INFO("[HectorSM]: lookupTransform %s to %s timed out. Could not transform laser scan into base_frame.", p_base_frame_.c_str(), scan.header.frame_id.c_str());
       return;
     }
   }
@@ -315,7 +317,7 @@ void HectorMappingRos::scanCallback(const sensor_msgs::LaserScan& scan)
   if (p_timing_output_)
   {
     ros::WallDuration duration = ros::WallTime::now() - startTime;
-    ROS_INFO("HectorSLAM Iter took: %f milliseconds", duration.toSec()*1000.0f );
+    ROS_INFO("[HectorSM]: Iter took: %f milliseconds", duration.toSec()*1000.0f );
   }
 
   //If we're just building a map with known poses, we're finished now. Code below this point publishes the localization results.
@@ -350,7 +352,7 @@ void HectorMappingRos::scanCallback(const sensor_msgs::LaserScan& scan)
     }
     catch(tf::TransformException e)
     {
-      ROS_ERROR("Transform failed during publishing of map_odom transform: %s",e.what());
+      ROS_ERROR("[HectorSM]: Transform failed during publishing of map_odom transform: %s",e.what());
       odom_to_base.setIdentity();
     }
     map_to_odom_ = tf::Transform(poseInfoContainer_.getTfTransform() * odom_to_base.inverse());
@@ -364,11 +366,11 @@ void HectorMappingRos::scanCallback(const sensor_msgs::LaserScan& scan)
 
 void HectorMappingRos::sysMsgCallback(const std_msgs::String& string)
 {
-  ROS_INFO("HectorSM sysMsgCallback, msg contents: %s", string.data.c_str());
+  ROS_INFO("[HectorSM]: sysMsgCallback, msg contents: %s", string.data.c_str());
 
   if (string.data == "reset")
   {
-    ROS_INFO("HectorSM reset");
+    ROS_INFO("[HectorSM]: reset");
     slamProcessor->reset();
   }
 }
@@ -376,7 +378,7 @@ void HectorMappingRos::sysMsgCallback(const std_msgs::String& string)
 bool HectorMappingRos::mapCallback(nav_msgs::GetMap::Request  &req,
                                    nav_msgs::GetMap::Response &res)
 {
-  ROS_INFO("HectorSM Map service called");
+  ROS_INFO("[HectorSM]: Map service called");
   res = mapPubContainer[0].map_;
   return true;
 }
@@ -384,8 +386,25 @@ bool HectorMappingRos::mapCallback(nav_msgs::GetMap::Request  &req,
 bool HectorMappingRos::resetMapCallback(std_srvs::Trigger::Request  &req,
                                         std_srvs::Trigger::Response &res)
 {
-  ROS_INFO("HectorSM Reset map service called");
+  ROS_INFO("[HectorSM]: Reset map service called");
   slamProcessor->reset();
+  return true;
+}
+
+bool HectorMappingRos::resetMapAndPoseCallback(hector_mapping::SetInitialPose::Request  &req,
+                                               hector_mapping::SetInitialPose::Response &res)
+{
+  slamProcessor->reset();
+  this->resetPose(req.initial_pose);
+  res.success = true;
+  return true;
+}
+
+bool HectorMappingRos::resetPoseCallback(hector_mapping::SetInitialPose::Request  &req,
+                                         hector_mapping::SetInitialPose::Response &res)
+{
+  this->resetPose(req.initial_pose);
+  res.success = true;
   return true;
 }
 
@@ -394,12 +413,12 @@ bool HectorMappingRos::pauseMapCallback(std_srvs::SetBool::Request  &req,
 {
   if (req.data && !pause_scan_processing_)
   {
-    res.message = "HectorSM Mapping paused";
+    res.message = "[HectorSM]: Mapping paused";
     ROS_INFO("%s", res.message.c_str());
   }
   else if (!req.data && pause_scan_processing_)
   {
-    res.message = "HectorSM Mapping no longer paused";
+    res.message = "[HectorSM]: Mapping no longer paused";
     ROS_INFO("%s", res.message.c_str());
   }
   pause_scan_processing_ = req.data;
@@ -567,7 +586,7 @@ void HectorMappingRos::publishMapLoop(double map_pub_period)
     //ros::WallDuration t2 = ros::WallTime::now() - t1;
 
     //std::cout << "time s: " << t2.toSec();
-    //ROS_INFO("HectorSM ms: %4.2f", t2.toSec()*1000.0f);
+    //ROS_INFO("[HectorSM]: ms: %4.2f", t2.toSec()*1000.0f);
 
     r.sleep();
   }
@@ -580,12 +599,13 @@ void HectorMappingRos::staticMapCallback(const nav_msgs::OccupancyGrid& map)
 
 void HectorMappingRos::initialPoseCallback(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)
 {
-  initial_pose_set_ = true;
-
-  tf::Pose pose;
-  tf::poseMsgToTF(msg->pose.pose, pose);
-  initial_pose_ = Eigen::Vector3f(msg->pose.pose.position.x, msg->pose.pose.position.y, tf::getYaw(pose.getRotation()));
-  ROS_INFO("Setting initial pose with world coords x: %f y: %f yaw: %f", initial_pose_[0], initial_pose_[1], initial_pose_[2]);
+  this->resetPose(msg->pose.pose);
 }
 
-
+void HectorMappingRos::resetPose(const geometry_msgs::Pose &pose)
+{
+  initial_pose_set_ = true;
+  initial_pose_ = Eigen::Vector3f(pose.position.x, pose.position.y, util::getYawFromQuat(pose.orientation));
+  ROS_INFO("[HectorSM]: Setting initial pose with world coords x: %f y: %f yaw: %f",
+           initial_pose_[0], initial_pose_[1], initial_pose_[2]);
+}

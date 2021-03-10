@@ -2,15 +2,16 @@ cmake_minimum_required(VERSION 3.0.2)
 project(hector_mapping)
 
 find_package(catkin REQUIRED COMPONENTS 
-  roscpp
-  nav_msgs
-  visualization_msgs
-  tf
-  message_filters
+  geometry_msgs
   laser_geometry
-  tf_conversions
+  message_filters
   message_generation
-  std_srvs)
+  nav_msgs
+  roscpp
+  std_srvs
+  tf
+  tf_conversions
+  visualization_msgs)
 
 find_package(Boost REQUIRED COMPONENTS thread)
 
@@ -27,8 +28,15 @@ add_message_files(
   HectorIterData.msg
 )
 
+## Generate services in the 'srv' folder
+add_service_files(
+  FILES
+  SetInitialPose.srv
+)
+
 generate_messages(
   DEPENDENCIES
+  geometry_msgs
 )
 
 ###################################

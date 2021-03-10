@@ -39,6 +39,8 @@
 #include "sensor_msgs/LaserScan.h"
 #include <std_msgs/String.h>
 
+// Service types
+#include <hector_mapping/SetInitialPose.h>
 #include <std_srvs/SetBool.h>
 #include <std_srvs/Trigger.h>
 
@@ -77,9 +79,11 @@ public:
   void scanCallback(const sensor_msgs::LaserScan& scan);
   void sysMsgCallback(const std_msgs::String& string);
 
-  bool mapCallback(nav_msgs::GetMap::Request  &req, nav_msgs::GetMap::Response &res);
-  bool resetMapCallback(std_srvs::Trigger::Request  &req, std_srvs::Trigger::Response &res);
-  bool pauseMapCallback(std_srvs::SetBool::Request  &req, std_srvs::SetBool::Response &res);
+  bool mapCallback(nav_msgs::GetMap::Request &req, nav_msgs::GetMap::Response &res);
+  bool resetMapCallback(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res);
+  bool resetMapAndPoseCallback(hector_mapping::SetInitialPose::Request &req, hector_mapping::SetInitialPose::Response &res);
+  bool resetPoseCallback(hector_mapping::SetInitialPose::Request &req, hector_mapping::SetInitialPose::Response &res);
+  bool pauseMapCallback(std_srvs::SetBool::Request &req, std_srvs::SetBool::Response &res);
 
   void publishMap(MapPublisherContainer& map_, const hectorslam::GridMap& gridMap, ros::Time timestamp, MapLockerInterface* mapMutex = 0);
 
@@ -99,6 +103,7 @@ public:
   void setStaticMapData(const nav_msgs::OccupancyGrid& map);
   */
 protected:
+  void resetPose(const geometry_msgs::Pose &pose);
 
   HectorDebugInfoProvider* debugInfoProvider;
   HectorDrawings* hectorDrawings;
@@ -121,6 +126,8 @@ protected:
   ros::Publisher scan_point_cloud_publisher_;
 
   ros::ServiceServer resetMapService_;
+  ros::ServiceServer resetMapAndPoseService_;
+  ros::ServiceServer resetPoseService_;
   ros::ServiceServer toggleScanProcessingService_;
 
   std::vector<MapPublisherContainer> mapPubContainer;
