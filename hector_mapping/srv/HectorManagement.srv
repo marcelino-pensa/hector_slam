@@ -1,4 +1,4 @@
-# Board service definition for hector processing management
+# Service definition for hector processing management
 # -------------------------------------------------------------
 # - - - - - Inputs - - - - -
 # pause: whether hector should pause or resume mapping
@@ -7,6 +7,7 @@
 # pose: if (reset_pose == true), then this pose is captured to reset hector's pose
 # - - - - - Outputs - - - - - 
 # success: boolean indicating whether the service call was successful
+# -------------------------------------------------------------
 bool pause
 bool reset_map
 bool reset_pose
