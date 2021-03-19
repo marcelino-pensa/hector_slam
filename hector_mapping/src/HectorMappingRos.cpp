@@ -79,8 +79,9 @@ HectorMappingRos::HectorMappingRos()
   private_nh_.param("sys_msg_topic", p_sys_msg_topic_, std::string("syscommand"));
   private_nh_.param("pose_update_topic", p_pose_update_topic_, std::string("poseupdate"));
 
-  private_nh_.param("use_tf_scan_transformation", p_use_tf_scan_transformation_,true);
-  private_nh_.param("use_tf_pose_start_estimate", p_use_tf_pose_start_estimate_,false);
+  private_nh_.param("tf_base_to_scan_frame_is_constant", p_tf_base_to_scan_frame_is_constant_, false);
+  private_nh_.param("use_tf_scan_transformation", p_use_tf_scan_transformation_, true);
+  private_nh_.param("use_tf_pose_start_estimate", p_use_tf_pose_start_estimate_, false);
   private_nh_.param("map_with_known_poses", p_map_with_known_poses_, false);
 
   private_nh_.param("base_frame", p_base_frame_, std::string("base_link"));
@@ -250,14 +251,19 @@ void HectorMappingRos::scanCallback(const sensor_msgs::LaserScan& scan) {
     }
   } else {
     // If we are using the tf tree to find the transform between the base frame and laser frame,
-    // let's get that transform
-    const ros::Duration dur (0.5);
-    tf::StampedTransform laserTransform;
-    if (tf_.waitForTransform(p_base_frame_,scan.header.frame_id, scan.header.stamp,dur)) {
-      tf_.lookupTransform(p_base_frame_,scan.header.frame_id, scan.header.stamp, laserTransform);
-    } else {
-      ROS_INFO("lookupTransform %s to %s timed out. Could not transform laser scan into base_frame.", p_base_frame_.c_str(), scan.header.frame_id.c_str());
-      return;
+    // let's get that transform. If the transform is constant, only load the first time this function is called. Otherwise,
+    // always load the transform from base frame to laser frame
+    static tf::StampedTransform laser_transform;
+    static bool laser_transform_initialized = false;
+    if ((!p_tf_base_to_scan_frame_is_constant_) || (p_tf_base_to_scan_frame_is_constant_ && !laser_transform_initialized)) {
+      const ros::Duration timeout(0.5);
+      if (tf_.waitForTransform(p_base_frame_, scan.header.frame_id, scan.header.stamp, timeout)) {
+        tf_.lookupTransform(p_base_frame_, scan.header.frame_id, scan.header.stamp, laser_transform);
+      } else {
+        ROS_INFO("lookupTransform %s to %s timed out. Could not transform laser scan into base_frame.", p_base_frame_.c_str(), scan.header.frame_id.c_str());
+        return;
+      }
+      laser_transform_initialized = true;
     }
 
     // Convert the laser scan to point cloud
@@ -269,7 +275,7 @@ void HectorMappingRos::scanCallback(const sensor_msgs::LaserScan& scan) {
     }
 
     // Return if we can't convert the point cloud to our data container
-    if(!rosPointCloudToDataContainer(laser_point_cloud_, laserTransform, laserScanContainer, slamProcessor->getScaleToMap())) {
+    if(!rosPointCloudToDataContainer(laser_point_cloud_, laser_transform, laserScanContainer, slamProcessor->getScaleToMap())) {
       return;
     }
 

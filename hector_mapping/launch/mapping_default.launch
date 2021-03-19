@@ -17,6 +17,7 @@
     <param name="odom_frame" value="$(arg odom_frame)" />
     
     <!-- Tf use -->
+    <param name="tf_base_to_scan_frame_is_constant" value="true"/>
     <param name="use_tf_scan_transformation" value="true"/>
     <param name="use_tf_pose_start_estimate" value="false"/>
     <param name="pub_map_odom_transform" value="$(arg pub_map_odom_transform)"/>
